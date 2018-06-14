@@ -5,6 +5,7 @@ import pytest
 from mock import patch, Mock
 from six.moves import urllib
 
+from pydruid.exceptions import DruidError
 from pydruid.client import PyDruid
 from pydruid.query import Query
 from pydruid.utils.aggregators import doublesum
@@ -28,7 +29,7 @@ class TestPyDruid:
         client = create_client()
 
         # when / then
-        with pytest.raises(IOError):
+        with pytest.raises(DruidError):
             client.topn(
                     datasource="testdatasource",
                     granularity="all",
@@ -62,7 +63,7 @@ class TestPyDruid:
         client = create_client()
 
         # when / then
-        with pytest.raises(IOError) as e:
+        with pytest.raises(DruidError) as e:
             client.topn(
                     datasource="testdatasource",
                     granularity="all",
@@ -74,45 +75,10 @@ class TestPyDruid:
                     threshold=1,
                     context={"timeout": 1000})
 
-        assert str(e.value) == textwrap.dedent("""
-            HTTP Error 500: <html>
-            <head>
-            <meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-1"/>
-            <title>Error 500 </title>
-            </head>
-            <body>
-            <h2>HTTP ERROR: 500</h2>
-            <p>Problem accessing /druid/v2/. Reason:
-            <pre>    javax.servlet.ServletException: java.lang.OutOfMemoryError: GC overhead limit exceeded</pre></p>
-            <hr /><a href="http://eclipse.org/jetty">Powered by Jetty:// 9.3.19.v20170502</a><hr/>
-            </body>
-            </html> 
-             Druid Error: javax.servlet.ServletException: java.lang.OutOfMemoryError: GC overhead limit exceeded 
-             Query is: {
-                "aggregations": [
-                    {
-                        "fieldName": "count",
-                        "name": "count",
-                        "type": "doubleSum"
-                    }
-                ],
-                "context": {
-                    "timeout": 1000
-                },
-                "dataSource": "testdatasource",
-                "dimension": "user_name",
-                "filter": {
-                    "dimension": "user_lang",
-                    "type": "selector",
-                    "value": "en"
-                },
-                "granularity": "all",
-                "intervals": "2015-12-29/pt1h",
-                "metric": "count",
-                "queryType": "topN",
-                "threshold": 1
-            }
-        """).strip()
+        assert str(e.value) == (
+            'Unknown (Unknown): javax.servlet.ServletException: '
+            'java.lang.OutOfMemoryError: GC overhead limit exceeded'
+        )
 
     @patch('pydruid.client.urllib.request.urlopen')
     def test_druid_returns_results(self, mock_urlopen):
